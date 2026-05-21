@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($resp = Invoke-WebRequest -Uri \"http://localhost:8080/api/wechat/messages?pageNum=1&pageSize=3\" -UseBasicParsing; \\($resp.Content | ConvertFrom-Json\\).data.records | ForEach-Object { \"id=$\\($_.id\\) content=$\\($_.content\\) reply=$\\($_.replyContent\\) time=$\\($_.createdAt\\)\" })",
+      "PowerShell(docker exec ai-pub-mysql mysql -uroot -proot -N -e \"DELETE FROM ai_pub.wechat_message WHERE reply_content IS NULL OR reply_content = ''\" 2>$null)",
+      "PowerShell(docker exec ai-pub-mysql mysql -uroot -proot -N -e \"SELECT id, LEFT\\(content,20\\) as content, LEFT\\(reply_content,30\\) as reply FROM ai_pub.wechat_message WHERE id=37\" 2>$null)",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:8080/api/wechat/messages/37\" -UseBasicParsing; \\($r.Content | ConvertFrom-Json\\).data | Select-Object id, content, replyContent)",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:8080/api/wechat/messages?pageNum=1&pageSize=1\" -UseBasicParsing; $json = $r.Content | ConvertFrom-Json; Write-Output \"id=$\\($json.data.records[0].id\\) content=$\\($json.data.records[0].content\\) reply=$\\($json.data.records[0].replyContent\\)\")",
+      "PowerShell(docker volume ls)",
+      "PowerShell(docker network ls --filter \"name=ai-pub\")"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph update --skip-flows --repo \"C:/Users/24657/Documents/trae_projects/bishe\" || true",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git rev-parse --git-dir >/dev/null 2>&1 && code-review-graph status --repo \"C:/Users/24657/Documents/trae_projects/bishe\" || echo 'Not a git repo, skipping'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+spring:
+  profiles:
+    active: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL;NON_KEYWORDS=KEY
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  redis:
+    host: localhost
+    port: 6379
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+  ai:
+    openai:
+      api-key: test-key
+      base-url: https://test.local
+      chat:
+        options:
+          model: test-model
+          temperature: 0.7
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
+jwt:
+  secret: test-jwt-secret-key-for-testing-purposes-only
+  expiration: 86400000
+
+logging:
+  level:
+    com.ai.pub: debug
