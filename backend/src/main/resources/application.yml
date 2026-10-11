@@ -66,6 +66,11 @@ spring:
         options:
           model: deepseek-v4-flash
           temperature: 0.7
+      timeout:
+        # 连接超时 5s；读取超时 30s（大模型生成中文回复通常需要数秒，
+        # 原先的 2s 会让绝大多数 AI 回复超时并降级为默认话术）
+        connect: 5000
+        read: 30000
 
 jwt:
   secret: ai-pub-secret-key-2024-for-jwt-token-generation

@@ -33,18 +33,41 @@ public class WechatMenuService {
         return wechatMenuRepository.save(menu);
     }
 
+    /**
+     * 更新菜单。采用"部分更新"语义：只覆盖请求中显式提供的字段。
+     *
+     * 原实现是无条件全量覆盖（existing.setName(menu.getName()) 等），
+     * 而前端表格内联排序只提交 { sortOrder }，导致 name 被置为 null，
+     * 触发 wechat_menu.name 的 NOT NULL 约束异常（前端表现为 500 + 回滚）。
+     */
     @Transactional
     public WechatMenu update(Long id, WechatMenu menu) {
         WechatMenu existing = getById(id);
 
-        existing.setParentId(menu.getParentId());
-        existing.setName(menu.getName());
-        existing.setType(menu.getType());
-        existing.setKey(menu.getKey());
-        existing.setUrl(menu.getUrl());
-        existing.setAppid(menu.getAppid());
-        existing.setPagepath(menu.getPagepath());
-        existing.setSortOrder(menu.getSortOrder());
+        if (menu.getParentId() != null) {
+            existing.setParentId(menu.getParentId());
+        }
+        if (menu.getName() != null) {
+            existing.setName(menu.getName());
+        }
+        if (menu.getType() != null) {
+            existing.setType(menu.getType());
+        }
+        if (menu.getKey() != null) {
+            existing.setKey(menu.getKey());
+        }
+        if (menu.getUrl() != null) {
+            existing.setUrl(menu.getUrl());
+        }
+        if (menu.getAppid() != null) {
+            existing.setAppid(menu.getAppid());
+        }
+        if (menu.getPagepath() != null) {
+            existing.setPagepath(menu.getPagepath());
+        }
+        if (menu.getSortOrder() != null) {
+            existing.setSortOrder(menu.getSortOrder());
+        }
 
         return wechatMenuRepository.save(existing);
     }

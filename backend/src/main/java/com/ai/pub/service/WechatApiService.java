@@ -44,7 +44,13 @@ public class WechatApiService {
         this.accountRepository = accountRepository;
         this.objectMapper = objectMapper;
         this.redisTemplate = redisTemplate;
-        this.restTemplate = new RestTemplate();
+        // 显式设置超时：原实现 new RestTemplate() 使用默认的 SimpleClientHttpRequestFactory，
+        // 没有连接/读取超时，微信接口一旦无响应会把消费线程一直挂住。
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(10000);
+        this.restTemplate = new RestTemplate(factory);
     }
 
     /**
@@ -135,7 +141,7 @@ public class WechatApiService {
                 String accessToken = root.get("access_token").asText();
                 int expiresIn = root.has("expires_in") ? root.get("expires_in").asInt() : 7200;
 
-                redisTemplate.opsForValue().set(redisKey, accessToken, expiresIn - 60, TimeUnit.SECONDS);
+                redisTemplate.opsForValue().set(redisKey, accessToken, expiresIn - 100, TimeUnit.SECONDS);
                 log.info("获取access_token成功: accountId={}", accountId);
                 return accessToken;
             } else if (root.has("errcode")) {
@@ -152,6 +158,10 @@ public class WechatApiService {
         throw new RuntimeException("获取access_token失败");
     }
 
+    /**
+     * 同步菜单到微信服务器
+     * 注：微信公众号自定义菜单API最多支持两级菜单（一级按钮+二级子按钮）
+     */
     public boolean syncMenu(Long accountId, List<WechatMenu> menus) {
         try {
             String accessToken = getAccessToken(accountId);

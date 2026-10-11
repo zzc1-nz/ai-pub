@@ -1,10 +1,13 @@
 package com.ai.pub.dto;
 
+import java.util.List;
 import java.util.Map;
 
 public class StatisticsDTO {
     private Long totalMessages;
     private Long todayMessages;
+    private Long monthMessages;
+    private List<Map<String, Object>> topQuestions;
     private Long keywordReplyCount;
     private Long aiReplyCount;
     private Long defaultReplyCount;
@@ -22,6 +25,10 @@ public class StatisticsDTO {
     public void setTotalMessages(Long totalMessages) { this.totalMessages = totalMessages; }
     public Long getTodayMessages() { return todayMessages; }
     public void setTodayMessages(Long todayMessages) { this.todayMessages = todayMessages; }
+    public Long getMonthMessages() { return monthMessages; }
+    public void setMonthMessages(Long monthMessages) { this.monthMessages = monthMessages; }
+    public List<Map<String, Object>> getTopQuestions() { return topQuestions; }
+    public void setTopQuestions(List<Map<String, Object>> topQuestions) { this.topQuestions = topQuestions; }
     public Long getKeywordReplyCount() { return keywordReplyCount; }
     public void setKeywordReplyCount(Long keywordReplyCount) { this.keywordReplyCount = keywordReplyCount; }
     public Long getAiReplyCount() { return aiReplyCount; }

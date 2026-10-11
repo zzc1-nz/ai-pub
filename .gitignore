@@ -1,6 +1,3 @@
-# Added by code-review-graph
-.code-review-graph/
-
 # Environment
 .env
 deploy/.env
@@ -14,6 +11,11 @@ backend/target/
 *.class
 *.jar
 *.war
+
+# 构建/测试输出（不应入库）
+backend/test_output.txt
+backend/uploads/
+*.jtl
 
 # IDE
 .idea/

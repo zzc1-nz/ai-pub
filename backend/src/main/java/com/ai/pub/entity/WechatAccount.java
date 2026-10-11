@@ -1,5 +1,6 @@
 package com.ai.pub.entity;
 
+import com.ai.pub.util.AesUtil;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -9,6 +10,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "wechat_account")
 public class WechatAccount {
+
+    @Transient
+    private static final AesUtil AES = new AesUtil();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,6 +55,36 @@ public class WechatAccount {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    protected void encryptBeforeSave() {
+        if (appSecret != null && !appSecret.isEmpty() && !AesUtil.isEncrypted(appSecret)) {
+            appSecret = AES.encrypt(appSecret);
+        }
+        if (encodingAesKey != null && !encodingAesKey.isEmpty() && !AesUtil.isEncrypted(encodingAesKey)) {
+            encodingAesKey = AES.encrypt(encodingAesKey);
+        }
+    }
+
+    @PostLoad
+    protected void decryptAfterLoad() {
+        // AesUtil.decrypt 对无前缀的历史明文会原样返回，因此旧数据无需特殊处理
+        if (appSecret != null && !appSecret.isEmpty()) {
+            try {
+                appSecret = AES.decrypt(appSecret);
+            } catch (Exception e) {
+                // 兼容未加密的旧数据
+            }
+        }
+        if (encodingAesKey != null && !encodingAesKey.isEmpty()) {
+            try {
+                encodingAesKey = AES.decrypt(encodingAesKey);
+            } catch (Exception e) {
+                // 兼容未加密的旧数据
+            }
+        }
+    }
 
     public Long getId() {
         return id;

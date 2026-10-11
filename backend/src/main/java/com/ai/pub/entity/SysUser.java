@@ -1,5 +1,6 @@
 package com.ai.pub.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -17,6 +18,13 @@ public class SysUser {
     @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
 
+    /**
+     * 密码（bcrypt 哈希）。使用 WRITE_ONLY：
+     * 1. 序列化时被忽略 → 不随 /api/sys/users 等接口下发，避免哈希泄露；
+     * 2. 反序列化仍接受请求体中的 password → 新增/修改用户的密码能正常写入。
+     * 若误用 @JsonIgnore 会同时屏蔽反序列化，导致新建用户时 password 为 null。
+     */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "password", nullable = false)
     private String password;
 

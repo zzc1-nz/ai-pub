@@ -5,8 +5,10 @@ import com.ai.pub.dto.PageQuery;
 import com.ai.pub.dto.PageResponse;
 import com.ai.pub.entity.WechatMessage;
 import com.ai.pub.service.WechatMessageService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -23,8 +25,11 @@ public class WechatMessageController {
     public Result<PageResponse<WechatMessage>> getPage(
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) String openid,
+            @RequestParam(required = false) String msgType,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime,
             PageQuery request) {
-        PageResponse<WechatMessage> page = wechatMessageService.getPage(accountId, openid, request);
+        PageResponse<WechatMessage> page = wechatMessageService.getPage(accountId, openid, msgType, startTime, endTime, request);
         return Result.success(page);
     }
 

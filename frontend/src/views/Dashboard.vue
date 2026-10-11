@@ -21,8 +21,8 @@
               <el-icon :size="30"><Message /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ statistics.messageCount || 0 }}</div>
-              <div class="stat-label">消息总数</div>
+              <div class="stat-value">{{ statistics.todayMessages || 0 }}</div>
+              <div class="stat-label">今日消息</div>
             </div>
           </div>
         </el-card>
@@ -31,11 +31,11 @@
         <el-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #e6a23c">
-              <el-icon :size="30"><Picture /></el-icon>
+              <el-icon :size="30"><DataLine /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ statistics.materialCount || 0 }}</div>
-              <div class="stat-label">素材数量</div>
+              <div class="stat-value">{{ statistics.monthMessages || 0 }}</div>
+              <div class="stat-label">本月消息</div>
             </div>
           </div>
         </el-card>
@@ -59,7 +59,7 @@
         <el-card>
           <template #header>
             <div class="card-header">
-              <span>消息趋势</span>
+              <span>消息趋势（近7天）</span>
             </div>
           </template>
           <div ref="chart1Ref" class="chart"></div>
@@ -76,11 +76,28 @@
         </el-card>
       </el-col>
     </el-row>
+    <el-row :gutter="20" style="margin-top: 20px">
+      <el-col :span="24">
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <span>常见问题 Top 10</span>
+            </div>
+          </template>
+          <el-table :data="topQuestions" stripe>
+            <el-table-column type="index" label="排名" width="80" />
+            <el-table-column prop="content" label="问题内容" />
+            <el-table-column prop="count" label="出现次数" width="120" />
+          </el-table>
+          <el-empty v-if="!topQuestions.length" description="暂无数据" />
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getStatistics } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -93,6 +110,7 @@ let chart1 = null
 let chart2 = null
 
 const statistics = ref({})
+const topQuestions = ref([])
 const messageTrend = ref([0, 0, 0, 0, 0, 0, 0])
 const weekDayLabels = ref(['周一', '周二', '周三', '周四', '周五', '周六', '周日'])
 const materialDistribution = ref([])
@@ -101,22 +119,28 @@ const loadStatistics = async () => {
   try {
     const res = await getStatistics({ accountId: userStore.selectedAccountId })
     statistics.value = res.data
-    
-    // 处理消息趋势数据 — 最近7天，x轴标签与实际星期对齐
+
+    // Top N 常见问题
+    topQuestions.value = res.data.topQuestions || []
+
+    // 处理消息趋势数据 — 最近7天
+    // 注意：不能用 toISOString()（它是 UTC）。后端 dailyMessageCount 的 key 来自
+    // createdAt.toLocalDate()，即 Asia/Shanghai 本地日期；用 UTC 会让本地
+    // 00:00–08:00 这 8 小时的当日数据点取错 key 而显示为 0。
     const dailyCount = res.data.dailyMessageCount || {}
     const dayLabels = []
     const trendData = []
+    const weekDayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     for (let i = 6; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
-      const weekDayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       dayLabels.push(weekDayNames[date.getDay()])
       trendData.push(dailyCount[dateStr] || 0)
     }
     messageTrend.value = trendData
     weekDayLabels.value = dayLabels
-    
+
     // 处理素材类型分布
     const materialType = res.data.materialTypeDistribution || {}
     materialDistribution.value = [
@@ -147,7 +171,8 @@ const initChart1 = () => {
         name: '消息数',
         type: 'line',
         data: messageTrend.value,
-        smooth: true
+        smooth: true,
+        areaStyle: { opacity: 0.3 }
       }
     ]
   }
@@ -176,6 +201,13 @@ const handleResize = () => {
   chart1 && chart1.resize()
   chart2 && chart2.resize()
 }
+
+// 顶部切换公众号后重新加载统计并重绘图表（原先只在 onMounted 加载一次）
+watch(() => userStore.selectedAccountId, async () => {
+  await loadStatistics()
+  chart1 && chart1.setOption({ xAxis: { data: weekDayLabels.value }, series: [{ data: messageTrend.value }] })
+  chart2 && chart2.setOption({ series: [{ data: materialDistribution.value }] })
+})
 
 onMounted(async () => {
   await loadStatistics()

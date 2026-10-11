@@ -98,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getReplyRuleList, createReplyRule, updateReplyRule, deleteReplyRule } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -142,6 +142,13 @@ const loadData = async () => {
     loading.value = false
   }
 }
+
+// 顶部切换公众号后重新拉取当前公众号的规则（原先只在 onMounted 读一次，
+// 切号后页面仍显示上一个公众号的数据）
+watch(() => userStore.selectedAccountId, () => {
+  page.value = 1
+  loadData()
+})
 
 const handleAdd = () => {
   isEdit.value = false

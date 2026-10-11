@@ -69,7 +69,7 @@ class WechatApiServiceTest {
         String token = wechatApiService.getAccessToken(1L);
 
         assertEquals("fresh_access_token_12345", token);
-        verify(valueOperations).set(eq("wechat:access_token:1"), eq("fresh_access_token_12345"), eq(7140L), eq(TimeUnit.SECONDS));
+        verify(valueOperations).set(eq("wechat:access_token:1"), eq("fresh_access_token_12345"), eq(7100L), eq(TimeUnit.SECONDS));
     }
 
     @Test

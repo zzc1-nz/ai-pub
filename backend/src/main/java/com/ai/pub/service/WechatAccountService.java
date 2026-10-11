@@ -14,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class WechatAccountService {
 
     private final WechatAccountRepository wechatAccountRepository;
+    private final WechatApiService wechatApiService;
 
-    public WechatAccountService(WechatAccountRepository wechatAccountRepository) {
+    public WechatAccountService(WechatAccountRepository wechatAccountRepository, WechatApiService wechatApiService) {
         this.wechatAccountRepository = wechatAccountRepository;
+        this.wechatApiService = wechatApiService;
     }
 
     public PageResponse<WechatAccount> getPage(PageQuery request) {
@@ -72,6 +74,12 @@ public class WechatAccountService {
 
     public boolean testConnection(Long id) {
         WechatAccount account = getById(id);
-        return true;
+        try {
+            // 尝试获取 access_token 来验证 AppID/AppSecret 是否有效
+            wechatApiService.getAccessToken(id);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

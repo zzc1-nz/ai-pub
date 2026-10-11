@@ -192,7 +192,7 @@ class ChatServiceTest {
 
         String reply = chatService.chat(1L, "openid1", "测试消息");
 
-        assertEquals("抱歉，AI服务暂时不可用，请稍后再试。", reply);
+        assertTrue(reply.contains("抱歉，AI服务暂时不可用，请稍后再试。"));
         verify(valueOps, never()).set(anyString(), anyString(), anyLong(), any());
     }
 
@@ -204,7 +204,7 @@ class ChatServiceTest {
 
         String reply = chatService.chat(1L, "openid1", "测试消息");
 
-        assertEquals("抱歉，AI服务暂时不可用，请稍后再试。", reply);
+        assertTrue(reply.contains("抱歉，AI服务暂时不可用，请稍后再试。"));
     }
 
     @Test

@@ -20,8 +20,8 @@
         <el-form-item label="Token" prop="token">
           <el-input v-model="form.token" placeholder="请输入Token" />
         </el-form-item>
-        <el-form-item label="EncodingAESKey" prop="aesKey">
-          <el-input v-model="form.aesKey" placeholder="请输入EncodingAESKey" />
+        <el-form-item label="EncodingAESKey" prop="encodingAesKey">
+          <el-input v-model="form.encodingAesKey" placeholder="请输入EncodingAESKey" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -57,12 +57,15 @@ const formRef = ref(null)
 const loading = ref(false)
 const isEdit = computed(() => !!route.params.id)
 
+// 字段名必须与后端 WechatAccount 实体一致：
+// 原为 aesKey，后端实际是 encodingAesKey，导致该值被 Jackson 静默丢弃
+// （JacksonConfig 设置了 FAIL_ON_UNKNOWN_PROPERTIES=false），EncodingAESKey 永远存不上。
 const form = ref({
   name: '',
   appId: '',
   appSecret: '',
   token: '',
-  aesKey: '',
+  encodingAesKey: '',
   status: 1,
   aiEnabled: true,
   defaultReply: '正在转接人工客服'

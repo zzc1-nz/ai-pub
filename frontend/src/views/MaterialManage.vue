@@ -10,11 +10,18 @@
           </el-button>
         </div>
       </template>
+      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+        <el-tab-pane label="全部" name="all" />
+        <el-tab-pane label="图片" name="image" />
+        <el-tab-pane label="视频" name="video" />
+        <el-tab-pane label="语音" name="voice" />
+        <el-tab-pane label="图文" name="news" />
+      </el-tabs>
       <el-table :data="tableData" v-loading="loading">
         <el-table-column prop="title" label="素材名称" />
         <el-table-column prop="type" label="素材类型">
           <template #default="{ row }">
-            <el-tag>{{ row.type }}</el-tag>
+            <el-tag>{{ typeLabels[row.type] || row.type }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="预览" width="100">
@@ -81,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { getMaterialList, uploadMaterial, deleteMaterial } from '@/api'
@@ -90,6 +97,8 @@ import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
 
+const typeLabels = { image: '图片', video: '视频', voice: '语音', news: '图文' }
+const activeTab = ref('all')
 const tableData = ref([])
 const loading = ref(false)
 const page = ref(1)
@@ -107,7 +116,11 @@ const form = ref({
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getMaterialList({ pageNum: page.value, pageSize: pageSize.value, accountId: userStore.selectedAccountId })
+    const params = { pageNum: page.value, pageSize: pageSize.value, accountId: userStore.selectedAccountId }
+    if (activeTab.value !== 'all') {
+      params.type = activeTab.value
+    }
+    const res = await getMaterialList(params)
     tableData.value = res.data.records || []
     total.value = res.data.total || 0
   } catch (error) {
@@ -116,6 +129,17 @@ const loadData = async () => {
     loading.value = false
   }
 }
+
+const handleTabChange = () => {
+  page.value = 1
+  loadData()
+}
+
+// 顶部切换公众号后重新拉取素材（原先只在 onMounted 读一次）
+watch(() => userStore.selectedAccountId, () => {
+  page.value = 1
+  loadData()
+})
 
 const handleUpload = () => {
   form.value = { type: 'image', file: null }

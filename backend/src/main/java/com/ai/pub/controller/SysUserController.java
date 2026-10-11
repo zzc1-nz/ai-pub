@@ -5,10 +5,12 @@ import com.ai.pub.dto.PageQuery;
 import com.ai.pub.dto.PageResponse;
 import com.ai.pub.entity.SysUser;
 import com.ai.pub.service.SysUserService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/api/users", "/api/sys/users"})
+@PreAuthorize("hasRole('ADMIN')")
 public class SysUserController {
 
     private final SysUserService sysUserService;

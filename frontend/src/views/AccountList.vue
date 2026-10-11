@@ -10,28 +10,41 @@
           </el-button>
         </div>
       </template>
-      <el-table :data="tableData" v-loading="loading">
-        <el-table-column prop="name" label="公众号名称" />
-        <el-table-column prop="appId" label="AppID" />
-        <el-table-column prop="status" label="状态">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间">
-          <template #default="{ row }">
-            {{ formatDate(row.createdAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="250">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <el-row :gutter="20" v-loading="loading">
+        <el-col :span="8" v-for="item in tableData" :key="item.id" style="margin-bottom: 20px">
+          <el-card shadow="hover" class="account-card">
+            <div class="account-card-header">
+              <el-avatar :size="50" style="background: #409eff">
+                {{ item.name ? item.name.charAt(0) : '?' }}
+              </el-avatar>
+              <div class="account-info">
+                <div class="account-name">{{ item.name }}</div>
+                <div class="account-appid">{{ item.appId }}</div>
+              </div>
+              <el-tag :type="item.status === 1 ? 'success' : 'danger'" size="small">
+                {{ item.status === 1 ? '启用' : '禁用' }}
+              </el-tag>
+            </div>
+            <div class="account-card-body">
+              <div class="account-meta">
+                <span>AI对话：</span>
+                <el-tag :type="item.aiEnabled ? 'success' : 'info'" size="small">
+                  {{ item.aiEnabled ? '已开启' : '已关闭' }}
+                </el-tag>
+              </div>
+              <div class="account-meta">
+                <span>创建时间：</span>
+                <span>{{ formatDate(item.createdAt) }}</span>
+              </div>
+            </div>
+            <div class="account-card-footer">
+              <el-button type="primary" link @click="handleEdit(item)">编辑</el-button>
+              <el-button type="danger" link @click="handleDelete(item)">删除</el-button>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+      <el-empty v-if="!loading && !tableData.length" description="暂无公众号" />
       <el-pagination
         v-model:current-page="page"
         v-model:page-size="pageSize"
@@ -106,5 +119,53 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.account-card {
+  height: 100%;
+}
+
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.account-info {
+  flex: 1;
+}
+
+.account-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.account-appid {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.account-card-body {
+  margin-bottom: 16px;
+}
+
+.account-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.account-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #eee;
+  padding-top: 12px;
 }
 </style>

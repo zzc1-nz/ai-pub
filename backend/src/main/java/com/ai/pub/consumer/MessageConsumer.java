@@ -4,11 +4,15 @@ import com.ai.pub.config.RabbitMQConfig;
 import com.ai.pub.entity.WechatAccount;
 import com.ai.pub.entity.WechatMessage;
 import com.ai.pub.service.*;
+import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
 
 @Component
 public class MessageConsumer {
@@ -37,7 +41,8 @@ public class MessageConsumer {
     }
 
     @RabbitListener(queues = RabbitMQConfig.MESSAGE_QUEUE)
-    public void handleMessage(WechatMessage message) {
+    public void handleMessage(WechatMessage message, Channel channel, Message amqpMessage) throws IOException {
+        long deliveryTag = amqpMessage.getMessageProperties().getDeliveryTag();
         log.info("从队列接收消息: messageId={}, content={}", message.getId(), message.getContent());
 
         try {
@@ -45,12 +50,14 @@ public class MessageConsumer {
             WechatMessage latest = wechatMessageService.getById(message.getId());
             if (latest.getReplyContent() != null && !latest.getReplyContent().isEmpty()) {
                 log.info("消息已被处理，跳过: messageId={}", message.getId());
+                channel.basicAck(deliveryTag, false);
                 return;
             }
 
             WechatAccount account = wechatAccountService.getById(message.getAccountId());
             if (account == null) {
                 log.error("公众号不存在: accountId={}", message.getAccountId());
+                channel.basicAck(deliveryTag, false);
                 return;
             }
 
@@ -68,9 +75,12 @@ public class MessageConsumer {
             }
 
             log.info("消息处理完成: messageId={}, reply={}", message.getId(), replyContent);
+            channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
             log.error("处理队列消息失败: messageId={}", message.getId(), e);
+            // 失败时拒绝消息，不重新入队（进入死信队列）
+            channel.basicNack(deliveryTag, false, false);
         }
     }
 
