@@ -50,9 +50,17 @@ const routes = [
       {
         path: 'users',
         name: 'UserManage',
-        component: () => import('@/views/UserManage.vue')
+        component: () => import('@/views/UserManage.vue'),
+        // 后端 SysUserController 有 @PreAuthorize("hasRole('ADMIN')")，
+        // 前端同步限制，避免 OPERATOR 直接输入 URL 进入后拿到 403
+        meta: { requiresAdmin: true }
       }
     ]
+  },
+  {
+    // 兜底路由：原先未知路径匹配失败会渲染空白页
+    path: '/:pathMatch(.*)*',
+    redirect: '/dashboard'
   }
 ]
 
@@ -67,6 +75,9 @@ router.beforeEach((to, from, next) => {
     next('/login')
   } else if (to.path === '/login' && userStore.token) {
     next('/')
+  } else if (to.meta && to.meta.requiresAdmin && userStore.userInfo?.role !== 'ADMIN') {
+    // 非管理员访问仅管理员可见的页面时退回首页
+    next('/dashboard')
   } else {
     next()
   }

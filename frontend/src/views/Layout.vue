@@ -29,7 +29,9 @@
           <el-icon><Message /></el-icon>
           <span>消息记录</span>
         </el-menu-item>
-        <el-menu-item index="/users">
+        <!-- 用户管理对应后端 @PreAuthorize("hasRole('ADMIN')")，仅管理员可见，
+             否则 OPERATOR 点进去只会得到 403 -->
+        <el-menu-item v-if="isAdmin" index="/users">
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
@@ -89,7 +91,18 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeMenu = computed(() => route.path)
+// 子路由（如 /accounts/edit/5）不应导致菜单失去高亮：
+// 原实现直接用 route.path 作为 menu 的 active index，编辑页没有对应菜单项。
+const activeMenu = computed(() => {
+  const path = route.path
+  const match = ['/dashboard', '/accounts', '/menus', '/materials', '/reply-rules', '/messages', '/users']
+    .find(p => path === p || path.startsWith(p + '/'))
+  return match || path
+})
+
+// 与后端 SysUserController 的 @PreAuthorize("hasRole('ADMIN')") 保持一致
+const isAdmin = computed(() => userStore.userInfo?.role === 'ADMIN')
+
 const accounts = ref([])
 const selectedAccount = ref(userStore.selectedAccountId)
 
