@@ -1,6 +1,7 @@
 package com.ai.pub.entity;
 
 import com.ai.pub.util.AesUtil;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -24,12 +25,25 @@ public class WechatAccount {
     @Column(name = "app_id", nullable = false, unique = true, length = 100)
     private String appId;
 
+    /**
+     * AppSecret：调用微信接口的凭证。
+     *
+     * WRITE_ONLY 的作用：
+     * 1. 不随 /api/wechat/accounts 等接口下发（原先会明文返回，任何能访问
+     *    后台列表的账号都能拿到全部公众号的 AppSecret）；
+     * 2. 仍可从请求体写入，新增/修改公众号时能正常保存。
+     * 配套地，WechatAccountService.update() 改为"留空则不覆盖"，
+     * 否则前端编辑时因拿不到原值会把它清空。
+     */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "app_secret", nullable = false)
     private String appSecret;
 
     @Column(name = "token", nullable = false, length = 100)
     private String token;
 
+    /** EncodingAESKey：消息加解密密钥，同样不应下发（处理方式同 appSecret） */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "encoding_aes_key")
     private String encodingAesKey;
 

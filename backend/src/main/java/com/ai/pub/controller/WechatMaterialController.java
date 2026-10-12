@@ -8,6 +8,7 @@ import com.ai.pub.service.WechatApiService;
 import com.ai.pub.service.WechatMaterialService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +26,10 @@ public class WechatMaterialController {
 
     private final WechatMaterialService wechatMaterialService;
     private final WechatApiService wechatApiService;
+
+    /** 素材存储目录，来自 app.upload-dir（默认 ./uploads） */
+    @Value("${app.upload-dir:./uploads}")
+    private String uploadDir;
 
     public WechatMaterialController(WechatMaterialService wechatMaterialService, WechatApiService wechatApiService) {
         this.wechatMaterialService = wechatMaterialService;
@@ -69,8 +74,9 @@ public class WechatMaterialController {
                 : "";
 
         String newFilename = UUID.randomUUID().toString() + extension;
-        String uploadDir = "/app/uploads/";
-        Path uploadPath = Paths.get(uploadDir);
+        // 存储目录改为可配置（app.upload-dir），与 WebMvcConfig 的静态资源映射保持一致。
+        // 原实现硬编码 /app/uploads/，在 Windows 上会写到盘符根目录下的 app/uploads。
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
 
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);

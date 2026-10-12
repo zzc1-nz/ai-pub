@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -30,6 +31,10 @@ public class DataInitializer implements CommandLineRunner {
 
     @Value("${spring.ai.openai.api-key:}")
     private String aiApiKey;
+
+    /** 素材存储目录，来自 app.upload-dir（默认 ./uploads） */
+    @Value("${app.upload-dir:./uploads}")
+    private String uploadDir;
 
     public DataInitializer(SysUserRepository userRepository, PasswordEncoder passwordEncoder,
                            JwtConfig jwtConfig) {
@@ -107,7 +112,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void generateTestImages() {
-        String uploadDir = "/app/uploads/images";
+        String uploadDir = Paths.get(this.uploadDir, "images").toString();
         File dir = new File(uploadDir);
         if (!dir.exists()) {
             dir.mkdirs();

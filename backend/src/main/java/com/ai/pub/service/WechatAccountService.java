@@ -51,18 +51,32 @@ public class WechatAccountService {
         return wechatAccountRepository.save(account);
     }
 
+    /**
+     * 更新公众号配置。
+     *
+     * 注意 appSecret / encodingAesKey 采用"留空则不覆盖"语义：
+     * 这两个字段加了 @JsonProperty(WRITE_ONLY)，接口不再下发其值，
+     * 因此前端编辑页面拿到的永远是空串。若无条件覆盖，用户只改个名称
+     * 就会把 AppSecret 清空，导致该公众号后续所有微信接口调用失败。
+     */
     @Transactional
     public WechatAccount update(Long id, WechatAccount account) {
         WechatAccount existing = getById(id);
 
         existing.setName(account.getName());
         existing.setAppId(account.getAppId());
-        existing.setAppSecret(account.getAppSecret());
         existing.setToken(account.getToken());
-        existing.setEncodingAesKey(account.getEncodingAesKey());
         existing.setAiEnabled(account.getAiEnabled());
         existing.setDefaultReply(account.getDefaultReply());
         existing.setStatus(account.getStatus());
+
+        // 仅在请求中显式提供了新值时才覆盖敏感字段
+        if (account.getAppSecret() != null && !account.getAppSecret().isEmpty()) {
+            existing.setAppSecret(account.getAppSecret());
+        }
+        if (account.getEncodingAesKey() != null && !account.getEncodingAesKey().isEmpty()) {
+            existing.setEncodingAesKey(account.getEncodingAesKey());
+        }
 
         return wechatAccountRepository.save(existing);
     }

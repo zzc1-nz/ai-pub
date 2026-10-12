@@ -54,9 +54,11 @@ public class ImageGenerator {
     }
 
     public static void main(String[] args) {
+        // 默认与 app.upload-dir 一致，避免硬编码 Linux 路径
+        String dir = args.length > 0 ? args[0] : "./uploads/images";
         try {
-            generateTestImages("/app/uploads/images");
-            System.out.println("Test images generated successfully!");
+            generateTestImages(dir);
+            System.out.println("Test images generated successfully into " + dir);
         } catch (IOException e) {
             e.printStackTrace();
         }

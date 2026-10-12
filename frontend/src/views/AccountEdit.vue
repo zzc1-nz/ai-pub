@@ -15,13 +15,26 @@
           <el-input v-model="form.appId" placeholder="请输入AppID" />
         </el-form-item>
         <el-form-item label="AppSecret" prop="appSecret">
-          <el-input v-model="form.appSecret" placeholder="请输入AppSecret" show-password />
+          <el-input
+            v-model="form.appSecret"
+            :placeholder="isEdit ? '留空则保持原值不变' : '请输入AppSecret'"
+            show-password
+          />
+          <div v-if="isEdit" class="field-hint">
+            出于安全考虑，接口不再返回已保存的 AppSecret。不修改请留空。
+          </div>
         </el-form-item>
         <el-form-item label="Token" prop="token">
           <el-input v-model="form.token" placeholder="请输入Token" />
         </el-form-item>
         <el-form-item label="EncodingAESKey" prop="encodingAesKey">
-          <el-input v-model="form.encodingAesKey" placeholder="请输入EncodingAESKey" />
+          <el-input
+            v-model="form.encodingAesKey"
+            :placeholder="isEdit ? '留空则保持原值不变' : '请输入EncodingAESKey'"
+          />
+          <div v-if="isEdit" class="field-hint">
+            出于安全考虑，接口不再返回已保存的 EncodingAESKey。不修改请留空。
+          </div>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -71,10 +84,21 @@ const form = ref({
   defaultReply: '正在转接人工客服'
 })
 
+// appSecret 仅在新增时必填：编辑态下后端不再下发原值，
+// 留空表示"保持原值不变"，因此不能强制要求填写。
 const rules = {
   name: [{ required: true, message: '请输入公众号名称', trigger: 'blur' }],
   appId: [{ required: true, message: '请输入AppID', trigger: 'blur' }],
-  appSecret: [{ required: true, message: '请输入AppSecret', trigger: 'blur' }]
+  appSecret: [{
+    validator: (rule, value, callback) => {
+      if (!isEdit.value && !value) {
+        callback(new Error('请输入AppSecret'))
+      } else {
+        callback()
+      }
+    },
+    trigger: 'blur'
+  }]
 }
 
 const loadData = async (id) => {
@@ -120,5 +144,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.field-hint {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  margin-top: 4px;
 }
 </style>
