@@ -10,6 +10,4 @@ import java.util.List;
 public interface WechatMenuRepository extends JpaRepository<WechatMenu, Long> {
 
     List<WechatMenu> findByAccountIdOrderBySortOrderAsc(Long accountId);
-
-    List<WechatMenu> findByAccountIdAndParentIdOrderBySortOrderAsc(Long accountId, Long parentId);
 }

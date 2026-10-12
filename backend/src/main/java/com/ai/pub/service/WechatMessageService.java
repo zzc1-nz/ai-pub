@@ -76,10 +76,7 @@ public class WechatMessageService {
         return PageResponse.of(page.getContent(), page.getTotalElements(), request.getPageNum(), request.getPageSize());
     }
 
-    public List<Object[]> getTopContents(Long accountId, int limit) {
-        return wechatMessageRepository.findTopContents(accountId, limit);
-    }
-
+    /** 取某用户在该公众号下的完整会话（按时间正序），供前端会话视图使用 */
     public List<WechatMessage> getConversation(Long accountId, String openid) {
         return wechatMessageRepository.findByAccountIdAndOpenidOrderByCreatedAtAsc(accountId, openid);
     }
@@ -95,21 +92,8 @@ public class WechatMessageService {
     }
 
     @Transactional
-    public void updateReply(Long id, String replyType, String replyContent) {
-        WechatMessage message = getById(id);
-        message.setReplyType(replyType);
-        message.setReplyContent(replyContent);
-        wechatMessageRepository.save(message);
-    }
-
-    @Transactional
     public void delete(Long id) {
         wechatMessageRepository.deleteById(id);
-    }
-
-    @Transactional
-    public void processMessage(WechatMessage message) {
-        wechatMessageRepository.save(message);
     }
 
     @Transactional

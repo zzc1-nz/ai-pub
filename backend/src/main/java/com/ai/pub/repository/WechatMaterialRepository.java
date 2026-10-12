@@ -16,4 +16,8 @@ public interface WechatMaterialRepository extends JpaRepository<WechatMaterial, 
     Page<WechatMaterial> findByAccountIdAndType(Long accountId, String type, Pageable pageable);
 
     List<WechatMaterial> findByAccountIdAndType(Long accountId, String type);
+
+    /** 按素材类型分组计数（数据库侧聚合，避免把素材全量载入内存） */
+    @org.springframework.data.jpa.repository.Query("SELECT m.type, COUNT(m) FROM WechatMaterial m WHERE m.accountId = :accountId GROUP BY m.type")
+    List<Object[]> countByTypeGrouped(@org.springframework.data.repository.query.Param("accountId") Long accountId);
 }

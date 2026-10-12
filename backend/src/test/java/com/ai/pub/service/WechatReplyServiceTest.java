@@ -1,6 +1,5 @@
 package com.ai.pub.service;
 
-import com.ai.pub.entity.WechatAccount;
 import com.ai.pub.entity.WechatReplyRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,108 +12,130 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 关键词规则匹配测试。
+ *
+ * 说明：原先这里用 processMessage() 测试"规则 → AI → 默认回复"的完整流程，
+ * 但该方法与 MessageConsumer 的流程重复且已删除，相关用例改为直接覆盖
+ * findReply() 的匹配语义（AI 兜底由 MessageConsumerTest 负责）。
+ *
+ * 同时补齐原先缺失的覆盖：原测试构造了 exactRule 却从未使用，
+ * EXACT 模式实际上没有被测到。
+ */
 @ExtendWith(MockitoExtension.class)
 class WechatReplyServiceTest {
 
     @Mock
     private WechatReplyRuleService wechatReplyRuleService;
 
-    @Mock
-    private ChatService chatService;
-
     @InjectMocks
     private WechatReplyService wechatReplyService;
 
-    private WechatAccount account;
-    private WechatReplyRule helloRule;
+    private WechatReplyRule containsRule;
+    private WechatReplyRule exactRule;
+
+    private static final Long ACCOUNT_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        account = new WechatAccount();
-        account.setId(1L);
-        account.setName("测试号");
-        account.setAiEnabled(true);
-        account.setDefaultReply("默认回复");
+        containsRule = rule("欢迎语", "你好,hello,hi", "CONTAINS", "您好！欢迎使用智能客服。");
+        exactRule = rule("精确匹配", "帮助", "EXACT", "精确匹配回复");
+    }
 
-        helloRule = new WechatReplyRule();
-        helloRule.setId(1L);
-        helloRule.setName("欢迎语");
-        helloRule.setKeyword("你好,hello,hi");
-        helloRule.setMatchType("CONTAINS");
-        helloRule.setReplyType("text");
-        helloRule.setReplyContent("您好！欢迎使用智能客服。");
-
-        WechatReplyRule exactRule = new WechatReplyRule();
-        exactRule.setId(2L);
-        exactRule.setName("精确匹配");
-        exactRule.setKeyword("帮助");
-        exactRule.setMatchType("EXACT");
-        exactRule.setReplyType("text");
-        exactRule.setReplyContent("精确匹配回复");
+    private WechatReplyRule rule(String name, String keyword, String matchType, String reply) {
+        WechatReplyRule r = new WechatReplyRule();
+        r.setName(name);
+        r.setKeyword(keyword);
+        r.setMatchType(matchType);
+        r.setReplyType("TEXT");
+        r.setReplyContent(reply);
+        return r;
     }
 
     @Test
     void shouldMatchByContainsKeyword() {
-        when(wechatReplyRuleService.getActiveRules(1L)).thenReturn(List.of(helloRule));
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID)).thenReturn(List.of(containsRule));
 
-        String reply = wechatReplyService.processMessage(account, "openid1", "你好啊");
-
-        assertEquals("您好！欢迎使用智能客服。", reply);
+        assertEquals("您好！欢迎使用智能客服。", wechatReplyService.findReply(ACCOUNT_ID, "你好啊"));
     }
 
     @Test
-    void shouldNotMatchWhenKeywordNotFound() {
-        when(wechatReplyRuleService.getActiveRules(1L)).thenReturn(List.of(helloRule));
-        when(chatService.chat(1L, "openid1", "完全不匹配的内容")).thenReturn("AI 回复");
+    void shouldReturnNullWhenNoRuleMatches() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID)).thenReturn(List.of(containsRule));
 
-        String reply = wechatReplyService.processMessage(account, "openid1", "完全不匹配的内容");
-
-        assertEquals("AI 回复", reply);
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "完全不匹配的内容"));
     }
 
     @Test
-    void shouldUseAIWhenNoRulesExist() {
-        when(wechatReplyRuleService.getActiveRules(1L)).thenReturn(Collections.emptyList());
-        when(chatService.chat(1L, "openid1", "任意消息")).thenReturn("AI 生成回复");
+    void shouldReturnNullWhenNoRulesExist() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID)).thenReturn(Collections.emptyList());
 
-        String reply = wechatReplyService.processMessage(account, "openid1", "任意消息");
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "任意消息"));
+    }
 
-        assertEquals("AI 生成回复", reply);
-        verify(chatService).chat(1L, "openid1", "任意消息");
+    // ---- EXACT 模式（原测试构造了规则但从未断言，属覆盖缺口） ----
+
+    @Test
+    void exactModeShouldMatchOnlyFullEquality() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID)).thenReturn(List.of(exactRule));
+
+        assertEquals("精确匹配回复", wechatReplyService.findReply(ACCOUNT_ID, "帮助"),
+                "完全相等应命中");
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "请帮助我"),
+                "EXACT 模式下包含关键词不应命中");
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "帮助我"),
+                "EXACT 模式下前缀相同不应命中");
+    }
+
+    // ---- 其它匹配模式 ----
+
+    @Test
+    void startsWithAndEndsWithMode() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID))
+                .thenReturn(List.of(rule("前缀", "查询", "STARTS_WITH", "前缀回复")));
+        assertEquals("前缀回复", wechatReplyService.findReply(ACCOUNT_ID, "查询订单"));
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "我要查询"));
+
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID))
+                .thenReturn(List.of(rule("后缀", "吗", "ENDS_WITH", "后缀回复")));
+        assertEquals("后缀回复", wechatReplyService.findReply(ACCOUNT_ID, "有货吗"));
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "吗啡"));
     }
 
     @Test
-    void shouldUseDefaultReplyWhenAIDisabled() {
-        account.setAiEnabled(false);
-        when(wechatReplyRuleService.getActiveRules(1L)).thenReturn(Collections.emptyList());
+    void allContainsModeRequiresEveryKeyword() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID))
+                .thenReturn(List.of(rule("全含", "退款,质量", "ALL_CONTAINS", "全含回复")));
 
-        String reply = wechatReplyService.processMessage(account, "openid1", "任意消息");
-
-        assertEquals("默认回复", reply);
-        verify(chatService, never()).chat(anyLong(), anyString(), anyString());
+        assertEquals("全含回复", wechatReplyService.findReply(ACCOUNT_ID, "我要退款，质量有问题"));
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "我要退款"),
+                "只命中部分关键词时不应匹配");
     }
 
     @Test
-    void findReplyShouldReturnNullWhenNoMatch() {
-        when(wechatReplyRuleService.getActiveRules(1L)).thenReturn(Collections.emptyList());
+    void regexModeShouldMatchPattern() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID))
+                .thenReturn(List.of(rule("正则", "\\d{11}", "REGEX", "正则回复")));
 
-        String result = wechatReplyService.findReply(1L, "无匹配内容");
-
-        assertNull(result);
+        assertEquals("正则回复", wechatReplyService.findReply(ACCOUNT_ID, "我的手机号是13800138000"));
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "没有数字"));
     }
 
     @Test
-    void findReplyShouldReturnContentWhenMatched() {
-        when(wechatReplyRuleService.getActiveRules(1L)).thenReturn(List.of(helloRule));
+    void regexModeShouldNotBreakOnInvalidPattern() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID))
+                .thenReturn(List.of(rule("坏正则", "([unclosed", "REGEX", "不该命中")));
 
-        String result = wechatReplyService.findReply(1L, "你好");
+        // 语法错误应被捕获并视为不匹配，而不是抛异常
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, "任意内容"));
+    }
 
-        assertEquals("您好！欢迎使用智能客服。", result);
+    @Test
+    void nullContentShouldNotMatch() {
+        when(wechatReplyRuleService.getActiveRules(ACCOUNT_ID)).thenReturn(List.of(containsRule));
+
+        assertNull(wechatReplyService.findReply(ACCOUNT_ID, null));
     }
 }

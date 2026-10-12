@@ -37,7 +37,9 @@ app:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    # SQL 日志默认关闭，本地排查时用 -Dspring.jpa.show-sql=true 或环境变量开启。
+    # 生产环境长期开启会显著增加日志量并拖慢写入。
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect

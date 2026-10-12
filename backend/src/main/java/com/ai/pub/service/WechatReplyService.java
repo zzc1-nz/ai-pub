@@ -1,6 +1,5 @@
 package com.ai.pub.service;
 
-import com.ai.pub.entity.WechatAccount;
 import com.ai.pub.entity.WechatReplyRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,37 +9,48 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+/**
+ * 关键词自动回复规则匹配。
+ *
+ * 说明：本类原先还提供一个 processMessage(account, openid, content)，其中重复实现了
+ * "匹配规则 → AI 兜底 → 默认回复"的完整流程，与 MessageConsumer.processMessage()
+ * 逻辑重叠、无生产调用方（仅测试使用），已删除以避免两处逻辑漂移。
+ * 线上实际链路是 MessageConsumer 调用 findReply()，未命中时由它自己走 AI / 默认回复。
+ */
 @Service
 public class WechatReplyService {
 
     private static final Logger log = LoggerFactory.getLogger(WechatReplyService.class);
 
     private final WechatReplyRuleService wechatReplyRuleService;
-    private final ChatService chatService;
 
-    public WechatReplyService(WechatReplyRuleService wechatReplyRuleService, ChatService chatService) {
+    public WechatReplyService(WechatReplyRuleService wechatReplyRuleService) {
         this.wechatReplyRuleService = wechatReplyRuleService;
-        this.chatService = chatService;
     }
 
-    public String processMessage(WechatAccount account, String openid, String content) {
-        List<WechatReplyRule> rules = wechatReplyRuleService.getActiveRules(account.getId());
+    /**
+     * 按当前公众号的启用规则匹配回复内容。
+     *
+     * @return 命中的回复内容；未命中返回 null（由调用方决定走 AI 还是默认回复）
+     */
+    public String findReply(Long accountId, String content) {
+        List<WechatReplyRule> rules = wechatReplyRuleService.getActiveRules(accountId);
 
         for (WechatReplyRule rule : rules) {
             if (matchRule(rule, content)) {
-                log.info("匹配到回复规则: {}", rule.getName());
-                return getReplyContent(rule);
+                log.info("匹配到回复规则: {} (关键词: {})", rule.getName(), rule.getKeyword());
+                return rule.getReplyContent();
             }
         }
 
-        if (Boolean.TRUE.equals(account.getAiEnabled())) {
-            log.info("使用AI回复");
-            return chatService.chat(account.getId(), openid, content);
-        }
-
-        return account.getDefaultReply() != null ? account.getDefaultReply() : "感谢您的留言！";
+        log.debug("未匹配到任何回复规则: accountId={}", accountId);
+        return null;
     }
 
+    /**
+     * 判断单条规则是否命中。支持 CONTAINS / EXACT / STARTS_WITH / ENDS_WITH /
+     * ALL_CONTAINS / FUZZY / REGEX 七种模式。
+     */
     private boolean matchRule(WechatReplyRule rule, String content) {
         if (content == null) {
             return false;
@@ -142,32 +152,5 @@ public class WechatReplyService {
             }
         }
         return (double) matchCount / keyword.length();
-    }
-
-    private String getReplyContent(WechatReplyRule rule) {
-        String replyType = rule.getReplyType();
-        
-        if ("TEXT".equals(replyType)) {
-            return rule.getReplyContent();
-        }
-        
-        return rule.getReplyContent();
-    }
-
-    public String findReply(Long accountId, String content) {
-        log.info("findReply: accountId={}, content={}", accountId, content);
-        List<WechatReplyRule> rules = wechatReplyRuleService.getActiveRules(accountId);
-        log.info("findReply: 找到 {} 条激活规则", rules.size());
-        
-        for (WechatReplyRule rule : rules) {
-            log.info("检查规则: {} (关键词: {}, 匹配类型: {})", rule.getName(), rule.getKeyword(), rule.getMatchType());
-            if (matchRule(rule, content)) {
-                log.info("匹配到回复规则: {}", rule.getName());
-                return getReplyContent(rule);
-            }
-        }
-        
-        log.info("未匹配到任何回复规则");
-        return null;
     }
 }
