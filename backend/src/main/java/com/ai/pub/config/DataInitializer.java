@@ -2,9 +2,11 @@ package com.ai.pub.config;
 
 import com.ai.pub.entity.SysUser;
 import com.ai.pub.repository.SysUserRepository;
+import com.ai.pub.util.AesUtil;
 import com.ai.pub.util.ImageGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -19,18 +21,57 @@ public class DataInitializer implements CommandLineRunner {
     private static final String DEFAULT_ADMIN_USERNAME = "admin";
     private static final String DEFAULT_ADMIN_PASSWORD = "admin123456";
 
+    /** application.yml 中的 JWT 默认密钥，用于判断是否仍在使用不安全的默认值 */
+    private static final String DEFAULT_JWT_SECRET = "ai-pub-secret-key-2024-for-jwt-token-generation";
+
     private final SysUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtConfig jwtConfig;
 
-    public DataInitializer(SysUserRepository userRepository, PasswordEncoder passwordEncoder) {
+    @Value("${spring.ai.openai.api-key:}")
+    private String aiApiKey;
+
+    public DataInitializer(SysUserRepository userRepository, PasswordEncoder passwordEncoder,
+                           JwtConfig jwtConfig) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtConfig = jwtConfig;
     }
 
     @Override
     public void run(String... args) throws Exception {
+        checkSecurityConfig();
         initAdminUser();
         generateTestImages();
+    }
+
+    /**
+     * 启动自检：提示与安全相关的配置状态。
+     * 这些不是致命错误（不影响启动），但必须让运维在日志里看得见。
+     */
+    private void checkSecurityConfig() {
+        // 1) AES 密钥：决定公众号 AppSecret 是否真的被加密保护
+        if (AesUtil.isUsingDefaultKey()) {
+            log.warn("================================================================");
+            log.warn(" 安全提示：正在使用内置默认 AES 密钥加密公众号 AppSecret。");
+            log.warn(" 该默认值随源码公开，加密不具备实际保护作用。");
+            log.warn(" 生产环境请设置环境变量 AES_SECRET_KEY（建议 32 字节随机值）：");
+            log.warn("   openssl rand -base64 32");
+            log.warn(" 当前密钥来源: {}", AesUtil.getKeySource());
+            log.warn("================================================================");
+        } else {
+            log.info("AES 密钥来源: {}（非默认密钥）", AesUtil.getKeySource());
+        }
+
+        // 2) JWT 密钥：application.yml 中的默认值同样随源码公开
+        if (DEFAULT_JWT_SECRET.equals(jwtConfig.getSecret())) {
+            log.warn("安全提示：JWT 密钥仍是配置文件中的默认值，生产环境请通过环境变量 JWT_SECRET 覆盖。");
+        }
+
+        // 3) AI Key：未配置时所有 AI 回复都会降级为默认话术
+        if (aiApiKey == null || aiApiKey.trim().isEmpty()) {
+            log.warn("未配置 DEEPSEEK_API_KEY，AI 回复将全部降级为默认话术。");
+        }
     }
 
     /**

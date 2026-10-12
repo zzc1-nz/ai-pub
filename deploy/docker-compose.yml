@@ -65,6 +65,11 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_RABBITMQ_HOST: rabbitmq
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      # AES 密钥：加密存储公众号 AppSecret。未设置时后端会回退到内置默认密钥
+      # 并在启动日志中告警。生成方式: openssl rand -base64 32
+      AES_SECRET_KEY: ${AES_SECRET_KEY}
+      # JWT 签名密钥：未设置时使用配置文件默认值（同样会告警）
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8080:8080"
     depends_on:
