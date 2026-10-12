@@ -1,0 +1,76 @@
+# ============================================================================
+#  换行符统一策略
+# ----------------------------------------------------------------------------
+#  背景：项目在 Windows 上开发，git 默认会把文本文件的 LF 转成 CRLF 存到工作区，
+#  导致每次提交都出现 "LF will be replaced by CRLF" 警告；若与他人（Linux/macOS）
+#  协作，还可能出现整个文件"全变了"的假 diff。
+#
+#  策略：
+#    * text=auto        —— 仓库内统一存 LF，检出时按平台自动转换
+#    * eol=lf           —— 这些文件强制以 LF 检出（跨平台工具链依赖）
+#    * -text             —— 二进制文件不做任何换行转换
+# ============================================================================
+
+# 默认：自动识别文本文件，仓库内统一 LF
+* text=auto
+
+# ---- 源码：强制 LF（跨平台构建工具链对换行敏感） ----
+*.java      text eol=lf
+*.kt        text eol=lf
+*.xml       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.properties text eol=lf
+*.sql       text eol=lf
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.ts        text eol=lf
+*.vue       text eol=lf
+*.json      text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.conf      text eol=lf
+*.sh        text eol=lf
+
+# ---- Windows 专用脚本：保留 CRLF，否则 cmd 解析可能出错 ----
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# ---- Dockerfile / Makefile：强制 LF ----
+Dockerfile  text eol=lf
+Makefile    text eol=lf
+*.dockerignore text eol=lf
+
+# ---- Git 自身配置文件：强制 LF（避免在 autocrlf=true 的机器上反复告警） ----
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+
+# ---- 二进制：禁止换行转换 ----
+*.jar       binary
+*.war       binary
+*.class     binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.svg       text eol=lf
+*.pdf       binary
+*.zip       binary
+*.gz        binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+
+# ---- 语言统计：让 GitHub 正确识别项目构成 ----
+*.java      linguist-language=Java
+*.vue       linguist-language=Vue
+
+# 锁文件与生成物不计入语言统计，避免影响仓库"语言占比"显示
+frontend/package-lock.json  linguist-generated=true -diff
+backend/target/**           linguist-generated=true
+frontend/dist/**            linguist-generated=true
