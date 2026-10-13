@@ -8,6 +8,8 @@
 |---|---|
 | `seed-demo.sql` | 可直接执行的 SQL 脚本（含清空 + 插入） |
 | `generate_seed.py` | 生成上述 SQL 的 Python 脚本（随机种子固定，可重复生成） |
+| `generate_images.py` | 生成素材图片的脚本（需要 Pillow） |
+| `demo-images/` | 15 张素材图片（11 张内容图 + 4 张视频/语音封面），共约 440 KB |
 
 ## 数据内容
 
@@ -60,6 +62,44 @@ mysql -h 127.0.0.1 -P 3307 -uroot -proot --default-character-set=utf8mb4 ai_pub 
 python generate_seed.py
 ```
 
+## 素材图片
+
+`demo-images/` 下有 15 张图片，与 `wechat_material` 表的 `url` 字段一一对应：
+
+| 文件 | 对应素材 | 尺寸 |
+|---|---|---|
+| `banner-spring.jpg` | 商城首页轮播图 | 1200×600 |
+| `product-earphone.jpg` | 无线蓝牙耳机主图 | 800×800 |
+| `product-cup.jpg` | 智能保温杯主图 | 800×800 |
+| `news-spring.jpg` / `news-vip.jpg` | 图文封面 | 900×500 |
+| `course-kids.jpg` / `teacher.jpg` | 课程宣传 / 师资 | 900×600 |
+| `news-enroll.jpg` | 招生简章封面 | 900×500 |
+| `dish-hongshaorou.jpg` / `store.jpg` | 菜品 / 门店 | 900×600 |
+| `news-newdish.jpg` | 新菜上市封面 | 900×500 |
+| `video-*.jpg` / `voice-*.jpg` | 视频、语音的占位封面 | 900×500 / 600×600 |
+
+### 导入图片到容器
+
+```powershell
+cd C:\Users\24657\Documents\trae_projects\bishe\deploy
+
+# 建目录并复制（后端 APP_UPLOAD_DIR=/app/uploads）
+docker exec ai-pub-backend mkdir -p /app/uploads/demo
+docker cp seed-demo-data/demo-images/. ai-pub-backend:/app/uploads/demo/
+```
+
+复制后前端「素材管理」页面的图片预览即可正常显示。
+
+### 重新生成图片
+
+```bash
+pip install Pillow
+python generate_images.py
+```
+
+> 图片为**程序生成的占位图**（渐变背景 + 中文标题），风格统一、体积小，
+> 适合演示与截图。如需替换成真实商品图，直接覆盖同名文件即可。
+
 ## 演示账号
 
 | 账号 | 密码 | 角色 |
@@ -98,5 +138,10 @@ python generate_seed.py
 
 1. **脚本会先 TRUNCATE 业务表**（消息/规则/素材/菜单/公众号），`sys_user` 使用 `ON DUPLICATE KEY UPDATE` 保留原有账号。
 2. **AppSecret 以明文写入**：`AesUtil.decrypt` 对无 `enc:v1:` 前缀的历史明文会原样返回，因此可正常读取；后续在后台编辑保存时会自动加密。
-3. 素材的 `url` 是**占位路径**（`/uploads/demo/...`），实际文件不存在，图片预览会显示裂图——这不影响列表、分类、统计等功能演示。若需真实图片，可上传本地文件替换。
+3. 素材的 `url` 指向 `/uploads/demo/...`，需按上文「导入图片到容器」步骤把
+   `demo-images/` 复制进容器后图片预览才会显示；未复制时列表与分类仍正常，
+   仅预览处显示裂图。
 4. 消息记录中的 `msg_id` 为模拟值，不与真实微信消息冲突。
+5. 容器重建（`docker compose up -d --build`）后 `/app/uploads` 内容会丢失，
+   需重新执行一次图片复制命令；若希望持久化，可在 docker-compose.yml 中
+   为 backend 挂载 `./uploads:/app/uploads`。

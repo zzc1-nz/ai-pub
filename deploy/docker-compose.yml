@@ -74,6 +74,11 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8080:8080"
+    volumes:
+      # 素材持久化：把宿主机 deploy/uploads 挂到容器的 APP_UPLOAD_DIR。
+      # 否则容器重建（docker compose up -d --build）后 /app/uploads 内容会丢失，
+      # 已上传的素材与演示图片都要重新导入。
+      - ./uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy

@@ -17,6 +17,10 @@ backend/test_output.txt
 backend/uploads/
 *.jtl
 
+# 运行时上传目录（由 docker-compose 挂载到容器的 /app/uploads）
+# 内容由用户上传产生，不入库；演示图片在 deploy/seed-demo-data/demo-images/
+deploy/uploads/
+
 # IDE
 .idea/
 *.iml
