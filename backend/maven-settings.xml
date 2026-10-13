@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Docker 构建专用的 Maven 配置。
+
+  为什么需要这个文件：
+  backend/Dockerfile 在容器内执行 mvn package，默认直连 Maven Central。
+  实测在部分网络环境下会频繁出现
+      "Remote host terminated the handshake"
+      "Premature end of Content-Length delimited message body"
+  导致构建随机失败（同一份代码有时成功有时失败）。
+
+  这里把中央仓库指向国内镜像以提升稳定性，同时保留 spring-milestones：
+  Spring AI 1.0.0-M4 是里程碑版本，只存在于 Spring 的 milestone 仓库，
+  不能被通配镜像接管（否则会 404），因此用 *,!spring-milestones 排除它。
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+          http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <mirrors>
+        <!-- 中央仓库走阿里云；spring-milestones 排除在外 -->
+        <mirror>
+            <id>aliyun-public</id>
+            <name>阿里云公共仓库</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <mirrorOf>*,!spring-milestones</mirrorOf>
+        </mirror>
+    </mirrors>
+
+    <profiles>
+        <profile>
+            <id>docker-build</id>
+            <repositories>
+                <!-- Spring 里程碑仓库（spring-ai-core 等依赖来源） -->
+                <repository>
+                    <id>spring-milestones</id>
+                    <name>Spring Milestones</name>
+                    <url>https://repo.spring.io/milestone</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+                <!-- 华为云镜像作为 spring 构件的备用源（实测含 milestone 版本） -->
+                <repository>
+                    <id>huaweicloud</id>
+                    <name>Huawei Cloud Maven</name>
+                    <url>https://repo.huaweicloud.com/repository/maven</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>docker-build</activeProfile>
+    </activeProfiles>
+
+</settings>
