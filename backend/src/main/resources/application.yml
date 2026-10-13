@@ -20,12 +20,6 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
-# 素材/图片的本地存储目录。
-# Docker 镜像内的默认值为 /app/uploads；本地开发（尤其 Windows）可通过
-# 环境变量或 -Dapp.upload-dir=... 覆盖，避免写到 C:\app\uploads 这类意外位置。
-app:
-  upload-dir: ${APP_UPLOAD_DIR:./uploads}
-
   datasource:
     url: jdbc:mysql://localhost:3307/ai_pub?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&useSSL=false&serverTimezone=Asia/Shanghai&autoReconnect=true
     username: root
@@ -79,6 +73,12 @@ app:
         # 原先的 2s 会让绝大多数 AI 回复超时并降级为默认话术）
         connect: 5000
         read: 30000
+
+# 素材/图片的本地存储目录（顶层配置，注意不要写在 spring: 块内部）。
+# Docker 镜像内通过 APP_UPLOAD_DIR=/app/uploads 指定；本地开发默认 ./uploads，
+# 避免在 Windows 上写到盘符根目录下的 app/uploads。
+app:
+  upload-dir: ${APP_UPLOAD_DIR:./uploads}
 
 jwt:
   # 生产环境请通过环境变量 JWT_SECRET 覆盖（默认值随源码公开）
