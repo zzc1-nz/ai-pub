@@ -4,7 +4,29 @@
 
 面向公众号运营者，把微信服务器推送的用户消息经过 **关键词规则 → 大模型生成 → 兜底话术** 三级决策后自动回复，同时提供公众号配置、菜单同步、素材管理、消息检索与数据统计能力。
 
+> **作者**：[zzc1-nz](https://github.com/zzc1-nz) · [个人主页](https://zzc1-nz.github.io)
+
 ---
+
+<!--
+  界面截图区（当前已隐藏）
+  ============================================================
+  截图放进 docs/images/ 后，删掉本注释块的首尾标记即可显示。
+  需要的文件名：dashboard.png / login.png / messages.png / reply-rules.png
+  详见 docs/images/README.md
+  ============================================================
+
+## 界面预览
+
+| 数据统计 | 消息记录 |
+|---|---|
+| ![数据统计](docs/images/dashboard.png) | ![消息记录](docs/images/messages.png) |
+
+| 自动回复规则 | 登录页 |
+|---|---|
+| ![自动回复规则](docs/images/reply-rules.png) | ![登录页](docs/images/login.png) |
+
+-->
 
 ## 目录
 
@@ -456,4 +478,14 @@ API QPS · API 平均响应时间 · JVM 堆内存 · 堆内存使用率 · 活�
 
 ## 许可证
 
-MIT License
+MIT License —— 详见 [LICENSE](LICENSE)
+
+---
+
+## 作者
+
+**zzc1-nz**
+
+- GitHub：https://github.com/zzc1-nz
+- 个人主页：https://zzc1-nz.github.io
+- 邮箱：2465746307@qq.com
