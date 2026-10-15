@@ -62,7 +62,12 @@ public class MessageConsumer {
             }
 
             String replyContent = processMessage(account, message);
+            // 注意：processMessage 把 replyType 写在参数 message 上（MQ 反序列化得到的对象），
+            // 而这里要落库的是 latest（从数据库查出的另一实例）。
+            // 必须显式把 replyType 从 message 搬到 latest，否则 reply_type 列恒为 NULL，
+            // 前端"回复方式"列空白，统计接口的 AI/关键词/默认三项也恒为 0。
             latest.setReplyContent(replyContent);
+            latest.setReplyType(message.getReplyType());
             wechatMessageService.update(message.getId(), latest);
 
             // WebSocket 推送回复更新到前端
